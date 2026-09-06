@@ -7,6 +7,17 @@
   the same proportions. Unset, Blip still follows Omarchy's type tokens.
   This does not change the bar, GTK apps, or terminals.
 
+- **Pinned groups and merged DMs follow Messages again.** A re-keyed group's
+  pin stays on a retired chat row's `group_id`, so matching only the live row
+  dropped it from Favorites (a pin slot with no matching chat). The same gap
+  split one person into two threads when Messages had merged their phone SMS
+  row with their email iMessage row under one `group_id` — the pin stuck to
+  the stale SMS handle and the open thread never saw the iMessage history.
+  `chats` now matches pins against every id in the cluster, 1:1s that share a
+  `group_id` fold like re-keyed groups, and the thread loader keeps alias
+  rows instead of throwing them away. Mac side: copy `imsg` to `~/.blip/bin/`
+  (or re-run the install one-liner).
+
 ## 2.3.2 — 2026-09-04
 
 - **A mute list, for the texts nobody opted into.** Political fundraising

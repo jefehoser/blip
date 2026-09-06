@@ -338,19 +338,36 @@ export const GROUP_SCAN_WINDOW = 1500;
  * `recent` is newest-first and mixed across chats; `thread` is already
  * oldest-first and single-chat. Both end up oldest-first, last `limit` only.
  */
+/** Chat ids that belong to one Messages conversation (re-keyed group or
+ *  merged DM). `chat` itself is always included so a missing alias map
+ *  still loads that row. */
+export function chatsForThread(chat: string, aliases: Record<string, string> = {}): string[] {
+  const canon = aliases[chat] ?? chat;
+  const ids = new Set<string>([chat, canon]);
+  for (const [alias, target] of Object.entries(aliases)) {
+    if (target === canon) ids.add(alias);
+  }
+  return [...ids];
+}
+
 export function selectThread(
   raw: ImsgMessage[],
   chat: string,
   group: boolean,
   limit: number,
   selfChats: string[] = [],
+  aliases: Record<string, string> = {},
 ): ImsgMessage[] {
   // Exact-filter DMs too: `imsg thread` matches the handle by SUBSTRING, so
   // +15551234567 can pull rows from +995551234567 into the wrong conversation
   // (Codex finding #3).
   // A DM is scoped by CHAT, not by sender: the same handle's messages in a
   // group carry the group's chat id and must stay out of the 1:1 thread.
-  let msgs = raw.filter((m) => chatKey(m) === chat || (!group && m.handle === chat && !isGroupChat(chatKey(m))));
+  // Alias ids are the other chat rows Messages has merged into this one
+  // (phone + email, or a re-keyed group); without them the Mac can return
+  // the whole conversation and this filter would throw the extra rows away.
+  const ids = new Set(chatsForThread(chat, aliases));
+  let msgs = raw.filter((m) => ids.has(chatKey(m)) || (!group && m.handle === chat && !isGroupChat(chatKey(m))));
   msgs = [...msgs].sort((a, b) => (a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0));
   msgs = dedupeSelfEcho(msgs, selfChats);
   return msgs.length > limit ? msgs.slice(msgs.length - limit) : msgs;
@@ -388,7 +405,10 @@ export function loadThread(
   try {
     const parsed = JSON.parse(res.stdout as string);
     if (!Array.isArray(parsed)) throw new Error("not an array");
-    const msgs = selectThread(parsed as ImsgMessage[], chat, group, limit, loadState().selfChats);
+    const state = loadState();
+    const msgs = selectThread(
+      parsed as ImsgMessage[], chat, group, limit, state.selfChats, state.chatAliases,
+    );
     return { ok: true, online: true, error: "", bubbles: decorate(msgs, today, formats) };
   } catch (e) {
     return { ok: false, online: true, error: `bad JSON from imsg: ${e}`, bubbles: [] };
