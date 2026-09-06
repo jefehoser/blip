@@ -29,6 +29,44 @@ Blip. Read this first; it is short and every line has cost someone an evening.
   — the ssh shim. `scripts/blip-setup` — the wizard.
 - `ROADMAP.md` — what is done, what is deferred and why.
 
+## Danny's two commands
+
+Danny is not a developer. He will say **update Blip** or **patch/fix Blip**.
+Do the git/plugin/Mac work yourself. Report one or two sentences: what is
+running now, and whether anything of his is still waiting on Nix. Do not
+explain branches, clones, or the bridge unless he asks.
+
+**Workshop** is `~/Work/blip`. **Installed Blip** is
+`~/.config/omarchy/plugins/nixfred.blip`. **Mac tools** are `~/.blip/bin` on
+the Mac named in `~/.config/blip/bridge.conf`. Omarchy runs the installed
+copy, not the workshop.
+
+### update Blip
+
+1. In the workshop, fetch Nix (`upstream`). If a patch branch still exists
+   and Nix has not merged it, rebase that branch onto current `upstream/main`
+   and keep it. If Nix *has* merged it (or there is no patch), check out
+   `main`, fast-forward to `upstream/main`, and delete leftover PR branches.
+2. Run `omarchy plugin update nixfred.blip`.
+3. If a patch is still unmerged, copy the workshop's `*.qml *.ts manifest.json`
+   onto the installed copy so the update does not wipe Danny's fix.
+4. If `bridge/` changed, re-run `scripts/blip-setup` with the host from
+   `bridge.conf` (or `scp` the changed Mac tools to `~/.blip/bin`).
+5. `omarchy-restart-shell`. Confirm with `qs … ipc call nixfred.blip status`.
+6. Tell Danny the version now running. If a patch is still only on this
+   machine, say so in one line.
+
+### patch / fix Blip
+
+1. Fetch Nix. Start a **new** branch from current `upstream/main`. Never
+   continue an old PR branch.
+2. Implement, `bun test`, deploy: copy `*.qml *.ts manifest.json` to the
+   installed copy; `scp` any Mac-tool change to `~/.blip/bin`; then
+   `omarchy-restart-shell`.
+3. Ask whether to commit, push, and open a PR to Nix.
+4. After Nix merges: do **update Blip** and delete the patch branch. The
+   machine is back on Nix's path.
+
 ## Installing for a human
 
 Follow README "Install" exactly. Stop at step 3 and wait for the human to
